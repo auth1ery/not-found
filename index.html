@@ -1,0 +1,296 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>404 — Not Found (Prototype)</title>
+  <style>
+    :root{--bg:#0b0b0f;--panel:#111216;--muted:#9aa0a6;--accent:#60a5fa;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    html,body{height:100%;background:var(--bg);color:#e6eef8;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,'Apple Color Emoji','Segoe UI Emoji';margin:0}
+    .app{display:grid;grid-template-columns:220px 1fr;gap:12px;height:100vh;padding:16px}/* left nav */
+nav{background:linear-gradient(180deg,#0f1114, #0b0b0f);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.6);display:flex;flex-direction:column}
+.logo{font-weight:700;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+.logo .dot{width:12px;height:12px;background:var(--accent);border-radius:4px}
+.levels{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.level-btn{background:transparent;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:8px;text-align:left;color:var(--muted);cursor:pointer}
+.level-btn.active{background:linear-gradient(90deg, rgba(96,165,250,0.08), rgba(96,165,250,0.03));color:#e6eef8;border-color:rgba(96,165,250,0.16)}
+
+/* main */
+.main{display:flex;flex-direction:column;gap:12px}
+.bar{display:flex;align-items:center;gap:12px;padding:12px;background:var(--panel);border-radius:10px}
+.address{background:var(--glass);padding:10px;border-radius:8px;flex:1;color:var(--muted);font-family:monospace}
+.controls{display:flex;gap:8px}
+.btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:var(--muted);cursor:pointer}
+
+.viewport{flex:1;background:linear-gradient(180deg,#08080a,#0d0d10);padding:18px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02);overflow:auto}
+
+/* fake page styles */
+.fake-page{background:linear-gradient(180deg,#fff,#f3f4f6);color:#111;padding:18px;border-radius:8px;min-height:340px}
+.fake-page.dark{background:linear-gradient(180deg,#07070b,#0b0b0f);color:#e6eef8}
+.hint{color:var(--muted);font-size:14px;margin-top:8px}
+
+.console{background:#06060a;color:#8bf;border-radius:8px;padding:10px;font-family:monospace;font-size:13px}
+.terminal-input{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+
+/* drag list */
+.draggable-list{display:flex;flex-direction:column;gap:8px;max-width:420px}
+.draggable-item{padding:10px;border-radius:8px;background:linear-gradient(180deg,#fff,#f9fafb);border:1px solid rgba(0,0,0,0.06);cursor:grab}
+.draggable-item.dark{background:linear-gradient(180deg,#0b0b0f,#101114);color:#e6eef8}
+.draggable-item.dragging{opacity:0.5}
+
+/* code editor */
+.code-editor{background:#0a0b0d;color:#cbd5e1;padding:14px;border-radius:8px;font-family:monospace;white-space:pre-wrap}
+
+.glitch{animation:glitch 0.25s steps(2, end) 6;}
+@keyframes glitch{0%{transform:translateX(0)}50%{transform:translateX(4px)}100%{transform:translateX(0)}}
+
+footer{color:var(--muted);font-size:12px;margin-top:8px}
+
+@media (max-width:840px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr;padding:10px}.levels{flex-direction:row;overflow:auto}.level-btn{white-space:nowrap}}
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav>
+      <div class="logo"><div class="dot"></div><div>404 — Not Found</div></div>
+      <div class="levels" id="levels"></div>
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px">Prototype — Levels 1–5</div>
+    </nav><div class="main">
+  <div class="bar">
+    <div class="address" id="address">/lost-site/404.html</div>
+    <div class="controls">
+      <button class="btn" id="toggle-inspector">Inspector</button>
+      <button class="btn" id="toggle-terminal">Console</button>
+    </div>
+  </div>
+
+  <div class="viewport" id="viewport">
+    <!-- content injected here -->
+  </div>
+
+  <footer id="footer">Tip: Use the Inspector and Console buttons to reveal tools for fixing each page.</footer>
+</div>
+
+  </div>  <!-- Inspector / Console overlays -->  <div id="inspector" style="position:fixed;right:18px;bottom:18px;width:420px;max-width:calc(100% - 40px);display:none">
+    <div class="console" id="inspector-content"></div>
+  </div>
+  <div id="terminal" style="position:fixed;left:18px;bottom:18px;width:420px;max-width:calc(100% - 40px);display:none">
+    <div class="console" style="display:flex;flex-direction:column;gap:8px">
+      <div id="console-log">// console ready</div>
+      <input id="terminal-input" class="terminal-input" placeholder='type code here (e.g. let memory = "restored" )' />
+    </div>
+  </div>  <script>
+    // Small prototype implementing levels 1-5.
+    const levelsData = [
+      {id:1,title:'Missing File',render:renderLevel1},
+      {id:2,title:'Invisible Words',render:renderLevel2},
+      {id:3,title:'Broken Script',render:renderLevel3},
+      {id:4,title:'Lost Links',render:renderLevel4},
+      {id:5,title:'Echoes of Code',render:renderLevel5}
+    ];
+
+    let current = 1;
+    const viewport = document.getElementById('viewport');
+    const levelsEl = document.getElementById('levels');
+    const addressEl = document.getElementById('address');
+    const inspector = document.getElementById('inspector');
+    const inspectorContent = document.getElementById('inspector-content');
+    const terminal = document.getElementById('terminal');
+    const consoleLog = document.getElementById('console-log');
+    const terminalInput = document.getElementById('terminal-input');
+
+    function init(){
+      levelsData.forEach(l=>{
+        const b = document.createElement('button');
+        b.className='level-btn';
+        b.innerText = `Level ${l.id}: ${l.title}`;
+        b.onclick = ()=>{ gotoLevel(l.id); };
+        b.id = 'level-btn-'+l.id;
+        levelsEl.appendChild(b);
+      });
+      document.getElementById('toggle-inspector').onclick = ()=>{ inspector.style.display = inspector.style.display === 'none' ? 'block' : 'none'; }
+      document.getElementById('toggle-terminal').onclick = ()=>{ terminal.style.display = terminal.style.display === 'none' ? 'block' : 'none'; terminalInput.focus(); }
+      terminalInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') handleTerminal(terminalInput.value); });
+      renderCurrent();
+    }
+
+    function gotoLevel(n){ current = n; renderCurrent(); }
+
+    function renderCurrent(){
+      // update nav active
+      levelsData.forEach(l=> document.getElementById('level-btn-'+l.id).classList.toggle('active', l.id === current));
+      const ld = levelsData.find(l=>l.id===current);
+      addressEl.textContent = `/lost-site/level-${ld.id}.html`;
+      inspector.style.display = 'none'; terminal.style.display='none'; consoleLog.textContent='// console ready'; terminalInput.value='';
+      viewport.innerHTML='';
+      ld.render(viewport);
+    }
+
+    // ----- Level 1: Missing File -----
+    function renderLevel1(container){
+      container.innerHTML = `
+        <div class="fake-page">
+          <h2>Stylesheet Missing</h2>
+          <p>GET /assets/style.css 404 (Not Found)</p>
+          <div class="hint">Try correcting the stylesheet path.</div>
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+            <input id="path-input" class="terminal-input" style="max-width:360px" value="/assets/style.css" />
+            <button class="btn" id="fix-path">Load</button>
+          </div>
+          <div style="margin-top:12px;color:var(--muted);font-size:13px">Directories: /styles/  /assets_old/  /images/</div>
+        </div>
+      `;
+      document.getElementById('fix-path').onclick = ()=>{
+        const v = document.getElementById('path-input').value.trim();
+        if(v === '/styles/style.css'){
+          // success
+          container.querySelector('.fake-page').classList.add('dark');
+          container.querySelector('.fake-page').innerHTML += '<p style="margin-top:12px;color:#60a5fa">✔ Stylesheet loaded.\n\nWelcome back. You still remember how to fix things.</p>';
+          setTimeout(()=>{ showFooter('Restored Stylesheet. Unlock: Memory Fragment'); },300);
+        } else {
+          alert('404 — not found. Try looking at the listed directories.');
+        }
+      }
+    }
+
+    // ----- Level 2: Invisible Words -----
+    function renderLevel2(container){
+      container.innerHTML = `
+        <div class="fake-page dark">
+          <h2 style="opacity:0.95">It\'s all here. You just can\'t see it.</h2>
+          <p class="hint">Open the inspector to find the CSS rule hiding the text.</p>
+        </div>
+      `;
+      inspectorContent.textContent = `body { color: #111; background: #111; }`;
+      // allow user to "edit" via inspector — detect when inspector is open + they change value
+      document.getElementById('toggle-inspector').onclick = ()=>{
+        inspector.style.display = inspector.style.display === 'none' ? 'block' : 'none';
+        inspectorContent.contentEditable = 'true';
+        inspectorContent.oninput = ()=>{
+          const txt = inspectorContent.textContent || '';
+          if(txt.includes('#fff') || txt.includes('white') || txt.includes('#eee')){
+            // reveal
+            const fp = container.querySelector('.fake-page');
+            fp.innerHTML += '<p style="margin-top:12px;color:#a3e635">✔ Revealed: Good. You can see the unseen.</p>';
+            showFooter('Revealed Words unlocked.');
+          }
+        }
+      };
+    }
+
+    // ----- Level 3: Broken Script -----
+    function renderLevel3(container){
+      container.innerHTML = `
+        <div class="fake-page">
+          <h2>Uncaught ReferenceError</h2>
+          <p>Uncaught ReferenceError: memory is not defined</p>
+          <p class="hint">Use the console to define <code>memory</code>.</p>
+          <div style="margin-top:12px"><button id="continue-btn" class="btn" disabled>Continue</button></div>
+        </div>
+      `;
+      // terminal handler will check for let memory = ...
+      container.querySelector('#continue-btn').onclick = ()=>{ alert('Memory restored. You may proceed.'); gotoLevel(4); };
+    }
+
+    function handleTerminal(text){
+      const t = text.trim();
+      consoleLog.textContent += '\n> ' + t;
+      terminalInput.value = '';
+      // naive parse
+      if(/\blet\s+memory\s*=/.test(t) || /memory\s*=/.test(t)){
+        consoleLog.textContent += '\n[system] memory defined';
+        const btn = document.querySelector('#continue-btn');
+        if(btn){ btn.disabled = false; btn.classList.add('active'); }
+        showFooter('Memory Fragment unlocked.');
+      }
+      // Level 5 prompt handler (y/n)
+      if(current === 5 && /^\s*[yn]\s*$/i.test(t)){
+        if(t.toLowerCase().startsWith('y')){ alert('You chose to proceed. (Level 6 would load here.)'); showFooter('Proceeding... (end of prototype)'); }
+        else{ alert('You backed away. The page remains corrupted.'); }
+      }
+    }
+
+    // ----- Level 4: Lost Links -----
+    function renderLevel4(container){
+      container.innerHTML = `
+        <div class="fake-page">
+          <h2>Site Directory</h2>
+          <p class="hint">Reorder the links into the correct site structure.</p>
+          <div class="draggable-list" id="link-list">
+          </div>
+        </div>
+      `;
+      const items = [
+        {id:'home',hint:'the end is the beginning'},
+        {id:'about',hint:'after contact'},
+        {id:'contact',hint:'after archive'},
+        {id:'archive',hint:'the start of everything'},
+      ];
+      const ul = document.getElementById('link-list');
+      items.forEach(it=>{
+        const d = document.createElement('div'); d.className='draggable-item'; d.draggable=true; d.id = 'item-'+it.id;
+        d.innerHTML = `<strong>${it.id}</strong><div style="font-size:12px;color:var(--muted);margin-top:6px">${it.hint}</div>`;
+        ul.appendChild(d);
+      });
+      // enable drag/drop ordering
+      let dragSrc = null;
+      ul.addEventListener('dragstart', e=>{ if(e.target.classList.contains('draggable-item')){ dragSrc = e.target; e.target.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }});
+      ul.addEventListener('dragend', e=>{ if(e.target.classList.contains('draggable-item')) e.target.classList.remove('dragging'); });
+      ul.addEventListener('dragover', e=>{ e.preventDefault(); const after = getDragAfterElement(ul, e.clientY); if(after==null) ul.appendChild(dragSrc); else ul.insertBefore(dragSrc, after); });
+
+      function getDragAfterElement(container, y){
+        const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+        return draggableElements.reduce((closest, child)=>{
+          const box = child.getBoundingClientRect(); const offset = y - box.top - box.height/2;
+          if(offset < 0 && offset > closest.offset){ return {offset:offset,element:child}; } else return closest;
+        },{offset: Number.NEGATIVE_INFINITY}).element;
+      }
+
+      // check order button
+      const checkBtn = document.createElement('button'); checkBtn.className='btn'; checkBtn.innerText='Check Order'; checkBtn.style.marginTop='12px';
+      checkBtn.onclick = ()=>{
+        const order = [...ul.querySelectorAll('.draggable-item')].map(n=>n.id.replace('item-',''));
+        const correct = ['archive','home','contact','about'];
+        if(JSON.stringify(order) === JSON.stringify(correct)){
+          alert('Structure restored.'); gotoLevel(5);
+        } else alert('Not quite — keep trying. Remember the hints.');
+      };
+      container.querySelector('.fake-page').appendChild(checkBtn);
+    }
+
+    // ----- Level 5: Echoes of Code -----
+    function renderLevel5(container){
+      container.innerHTML = `
+        <div class="fake-page dark">
+          <h2>/* DO NOT RESTORE */</h2>
+          <div class="code-editor" id="code-editor">
+&lt;!-- DO NOT RESTORE THIS --&gt;\n&lt;!-- WE WERE ERASED FOR A REASON --&gt;\n&lt;!-- STOP --&gt;
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px"><button id="uncomment" class="btn">Uncomment</button><button id="leave" class="btn">Leave it</button></div>
+          <div class="hint" style="margin-top:10px">Be careful — some things are lost for a reason.</div>
+        </div>
+      `;
+      const editor = document.getElementById('code-editor');
+      document.getElementById('uncomment').onclick = ()=>{
+        // remove the HTML comment markers
+        editor.textContent = editor.textContent.replace(/&lt;!--\s*/g,'').replace(/\s*--&gt;/g,'') + '\n\n// They see you now.';
+        editor.classList.add('glitch');
+        setTimeout(()=>editor.classList.remove('glitch'),1000);
+        showFooter('Integrity compromised — proceed? (type y or n in console)');
+        // show a console log hint
+        consoleLog.textContent += '\n[system] integrity compromised — proceed? (y/n)';
+        // also automatically show terminal
+        terminal.style.display = 'block'; terminalInput.focus();
+      };
+      document.getElementById('leave').onclick = ()=>{ alert('You chose not to restore the commented code. The archive stays hidden.'); }
+    }
+
+    function showFooter(text){ document.getElementById('footer').textContent = text; }
+
+    init();
+  </script></body>
+  </html>
